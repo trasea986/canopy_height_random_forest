@@ -29,10 +29,27 @@ quants_grf <- quantile(data$rsd_GRF, c(0.95, 0.99))
 data$quant_grf  <- with(data, factor(ifelse(abs(rsd_GRF) < quants_grf[1], 0, 
                                            ifelse(abs(rsd_GRF) < quants_grf[2], 1, 2))))
 
+quants_th <- quantile(data$true_height, c(0.95, 0.99))
+data$quant_th  <- with(data, factor(ifelse(abs(true_height) < quants_th[1], 0, 
+                                            ifelse(abs(true_height) < quants_grf[2], 1, 2))))
+
 ##### histograms
 
+#true height histogram
+th_hist <- ggplot(data, aes(true_height, fill = quant_th)) + 
+  geom_histogram(binwidth = 1, color = "black") + 
+  scale_fill_manual(values = c("white", "blue", "red"), 
+                    labels = c("0-95", "95-99", "99-100")) + 
+  xlab("True Canopy Height") +
+  ylab("Height Count") +
+  labs(fill = "Quantile") +
+  #scale_y_continuous(limits = c(0, 1200)) +
+  theme_bw(base_size = 14)
+
+ggsave("Histogram_true_height.png", plot = th_hist, width = 8, height = 6)
+
 #make the two plots
-rf_hist <- ggplot(data, aes(rsd_RF, fill = quant_rf)) + 
+rf_hist <- ggplot(data, aes(abs(rsd_RF), fill = quant_rf)) + 
   geom_histogram(binwidth = 1, color = "black") + 
   scale_fill_manual(values = c("white", "blue", "red"), 
                       labels = c("0-95", "95-99", "99-100")) + 
@@ -42,7 +59,7 @@ rf_hist <- ggplot(data, aes(rsd_RF, fill = quant_rf)) +
   scale_y_continuous(limits = c(0, 1200)) +
   theme_bw(base_size = 14)
 
-grf_hist <-  ggplot(data, aes(rsd_GRF, fill = quant_grf)) + 
+grf_hist <-  ggplot(data, aes(abs(rsd_GRF), fill = quant_grf)) + 
   geom_histogram(binwidth = 1, color = "black") + 
   scale_fill_manual(values = c("white", "blue", "red"), 
                     labels = c("0-95", "95-99", "99-100")) + 
@@ -62,8 +79,10 @@ ggsave("Histogram_RFvGRF.png", plot = hist_all, width = 8, height = 6)
 
 ##### checking height and residual relationship
 
+## note that by request added absolute value
+
 #make the two plots
-rf_reg <- ggplot(data, aes(rsd_RF, true_height)) + 
+rf_reg <- ggplot(data, aes(abs(rsd_RF), true_height)) + 
   geom_point(size=.5, alpha = 0.5, aes(color = quant_rf)) + 
   geom_smooth(linetype="dashed", alpha=0.2, method="loess", color = "black")+
   scale_color_manual(values = c("black", "blue", "red"), 
@@ -73,7 +92,7 @@ rf_reg <- ggplot(data, aes(rsd_RF, true_height)) +
   labs(color = "Quantile") +
   theme_bw(base_size = 14)
 
-grf_reg <- ggplot(data, aes(rsd_GRF, true_height)) + 
+grf_reg <- ggplot(data, aes(abs(rsd_GRF), true_height)) + 
   geom_point(size=.5, alpha = 0.5, aes(color = quant_grf)) + 
   geom_smooth(linetype="dashed", alpha=0.2, method="loess", color = "black")+
   scale_color_manual(values = c("black", "blue", "red"), 
@@ -98,7 +117,7 @@ data_rf_big <- subset(data, quant_rf != '0')
 data_grf_big <- subset(data, quant_grf != '0')
 
 #make the two plots
-rf_reg_big <- ggplot(data_rf_big, aes(rsd_RF, true_height)) + 
+rf_reg_big <- ggplot(data_rf_big, aes(abs(rsd_RF), true_height)) + 
   geom_point(size=.5, alpha = 0.5, aes(color = quant_rf)) + 
   geom_smooth(linetype="dashed", alpha=0.2, method="loess", color = "black")+
   scale_color_manual(values = c("blue", "red"), 
@@ -108,7 +127,7 @@ rf_reg_big <- ggplot(data_rf_big, aes(rsd_RF, true_height)) +
   labs(color = "Quantile") +
   theme_bw(base_size = 14)
 
-grf_reg_big <- ggplot(data_grf_big, aes(rsd_GRF, true_height)) + 
+grf_reg_big <- ggplot(data_grf_big, aes(abs(rsd_GRF), true_height)) +
   geom_point(size=.5, alpha = 0.5, aes(color = quant_grf)) + 
   geom_smooth(linetype="dashed", alpha=0.2, method="loess", color = "black")+
   scale_color_manual(values = c("blue", "red"), 
