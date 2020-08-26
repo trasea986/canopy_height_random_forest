@@ -14,8 +14,15 @@ data_sum
 ##### calculate quantiles
 data_quant_RF <- quantile(data$rsd_RF, c(.90, .95, .99))
 data_quant_GRF <- quantile(data$rsd_GRF, c(.90, .95, .99))
+data_quant_TH <- quantile(data$true_height, c(.90, .95, .99))
 data_quant_RF
 data_quant_GRF
+data_quant_TH
+
+# remove 1 and lower
+data_tall <- subset(data, data$true_height > 1)
+data_quant_tall <- quantile(data_tall$true_height, c(.90, .95, .99))
+data_quant_tall
 
 
 ##### quantile calc
@@ -144,3 +151,102 @@ reg_big = plot_grid(first_row, second_row, labels=c('', ''), ncol=1)
 reg_big
 
 ggsave("ResidualvTrueHeight_BigQuant.png", plot = reg_big, width = 8, height = 6)
+
+
+
+#### only looking at tall
+
+#### switch x and y and color code by tree height, not residual, adding R2, change dash line color
+
+#new histogram no 0 and 1, color code for 0 to 5
+
+##### quantile calc
+
+#Get quantiles, add factor
+quants_th <- quantile(data_tall$true_height, c(0.95, 0.99))
+data_tall$quant_th  <- with(data_tall, factor(ifelse(abs(true_height) < quants_th[1], 0, 
+                                           ifelse(abs(true_height) < quants_th[2], 1, 2))))
+
+##### histograms
+
+#true height histogram
+th_hist <- ggplot(data_tall, aes(true_height, fill = quant_th)) + 
+  geom_histogram(binwidth = 1, color = "black") + 
+  scale_fill_manual(values = c("white", "blue", "red"), 
+                    labels = c("0-95", "95-99", "99-100")) + 
+  xlab("True Canopy Height") +
+  ylab("Height Count") +
+  labs(fill = "Quantile") +
+  theme_bw(base_size = 14)
+
+ggsave("Histogram_true_height_tall.png", plot = th_hist, width = 8, height = 6)
+
+##### checking height and residual relationship
+
+## note that by request added absolute value
+
+#make the two plots
+rf_reg_tall <- ggplot(data_tall, aes(true_height, rsd_RF)) + 
+  geom_point(size=.5, alpha = 0.5, aes(color = quant_th)) + 
+  geom_smooth(linetype="dashed", alpha=0.2, method="loess", color = "purple")+
+  scale_color_manual(values = c("black", "blue", "red"), 
+                     labels = c("0-95", "95-99", "99-100")) + 
+  xlab("True Canopy Height") +
+  ylab("Random Forest Residual") +
+  labs(color = "Quantile") +
+  theme_bw(base_size = 14)
+
+grf_reg_tall <- ggplot(data_tall, aes(true_height, rsd_GRF)) + 
+  geom_point(size=.5, alpha = 0.5, aes(color = quant_th)) + 
+  geom_smooth(linetype="dashed", alpha=0.2, method="loess", color = "purple")+
+  scale_color_manual(values = c("black", "blue", "red"), 
+                     labels = c("0-95", "95-99", "99-100")) + 
+  xlab("True Canopy Height") +
+  ylab("Geograhically Weighted \n Random Forest Residual") +
+  labs(color = "Quantile") +
+  theme_bw(base_size = 14)
+
+#combine the two plots
+first_row = plot_grid(rf_reg_tall)
+second_row = plot_grid(grf_reg_tall)
+reg_all = plot_grid(first_row, second_row, labels=c('', ''), ncol=1)
+reg_all
+
+ggsave("ResidualvTrueHeight_v2.png", plot = reg_all, width = 10, height = 8)
+
+##### checking height if we only look at the 95th or greater quantile
+
+#subset data to drop everything < 95
+data_rf_tall_bigQ <- subset(data_tall, quant_th != '0')
+
+
+#make the two plots
+rf_reg_big <- ggplot(data_rf_tall_bigQ, aes(true_height, rsd_RF)) + 
+  geom_point(size=.5, alpha = 0.5, aes(color = quant_th)) + 
+  geom_smooth(linetype="dashed", alpha=0.2, method="loess", color = "purple")+
+  scale_color_manual(values = c("blue", "red"), 
+                     labels = c("95-99", "99-100")) + 
+  xlab("True Canopy Height") +
+  ylab("Random Forest Residual") +
+  labs(color = "Quantile") +
+  theme_bw(base_size = 14)
+
+grf_reg_big <- ggplot(data_rf_tall_bigQ, aes(true_height, rsd_GRF)) +
+  geom_point(size=.5, alpha = 0.5, aes(color = quant_th)) + 
+  geom_smooth(linetype="dashed", alpha=0.2, method="loess", color = "purple")+
+  scale_color_manual(values = c("blue", "red"), 
+                     labels = c("95-99", "99-100")) + 
+  xlab("True Canopy Height") +
+  ylab("Geograhically Weighted \n Random Forest Residual") +
+  labs(color = "Quantile") +
+  theme_bw(base_size = 14)
+
+#combine the two plots
+first_row = plot_grid(rf_reg_big)
+second_row = plot_grid(grf_reg_big)
+reg_big = plot_grid(first_row, second_row, labels=c('', ''), ncol=1)
+reg_big
+
+ggsave("ResidualvTrueHeight_BigQuant_tall.png", plot = reg_big, width = 10, height = 8)
+
+
